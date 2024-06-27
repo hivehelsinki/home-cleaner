@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "home-cleaner"
+version = "0.1.0"
+description = "Home cleaner for 42 homes running on Linux and ISCSi."
+authors = ["Jordane A. Gengo"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+click = "^8.1.7"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.2"
+ruff = "^0.5.0"
+pre-commit = "^3.7.1"
+pytest-asyncio = "^0.23.7"
+pytest-cov = "^5.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
