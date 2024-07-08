@@ -1,5 +1,4 @@
 import math
-import json
 import time
 import logging
 import requests
@@ -19,10 +18,19 @@ LOG = logging.getLogger(__name__)
 # ic = IntraAPIClient("your_app_id", "your_app_secret")
 # the token rewquest url and the intra endpoint base url are set automatically to work with intra V2
 
+
 class IntraAPIClient(object):
     verify_requests = False
 
-    def __init__(self, app_id, app_secret, token_url="https://api.intra.42.fr/v2/oauth/token", endpoint_base_url="https://api.intra.42.fr/v2", intra_scopes="public", progress_bar=False):
+    def __init__(
+        self,
+        app_id,
+        app_secret,
+        token_url="https://api.intra.42.fr/v2/oauth/token",
+        endpoint_base_url="https://api.intra.42.fr/v2",
+        intra_scopes="public",
+        progress_bar=False,
+    ):
         self.client_id = app_id
         self.client_secret = app_secret
         self.token_url = token_url
@@ -64,36 +72,54 @@ class IntraAPIClient(object):
                 url,
                 headers=self._make_authed_header(headers),
                 verify=self.verify_requests,
-                **kwargs
+                **kwargs,
             )
 
             rc = res.status_code
             if rc == 401:
-                if 'www-authenticate' in res.headers:
-                    _, desc = res.headers['www-authenticate'].split('error_description="')
+                if "www-authenticate" in res.headers:
+                    _, desc = res.headers["www-authenticate"].split(
+                        'error_description="'
+                    )
                     desc, _ = desc.split('"')
-                    if desc == "The access token expired" or desc == "The access token is invalid":
+                    if (
+                        desc == "The access token expired"
+                        or desc == "The access token is invalid"
+                    ):
                         if self.token != "token_dummy":
-                            LOG.warning(f"Server said our token {self.token} {desc.split(' ')[-1]}")
+                            LOG.warning(
+                                f"Server said our token {self.token} {desc.split(' ')[-1]}"
+                            )
                         if tries < 5:
                             LOG.debug("Renewing token")
                             tries += 1
                             self.request_token()
                             continue
                         else:
-                            LOG.error("Tried to renew token too many times, something's wrong")
+                            LOG.error(
+                                "Tried to renew token too many times, something's wrong"
+                            )
 
             if rc == 429:
-                LOG.info(f"Rate limit exceeded - Waiting {res.headers['Retry-After']}s before requesting again")
-                time.sleep(float(res.headers['Retry-After']))
+                LOG.info(
+                    f"Rate limit exceeded - Waiting {res.headers['Retry-After']}s before requesting again"
+                )
+                time.sleep(float(res.headers["Retry-After"]))
                 continue
 
             if rc >= 400:
-                req_data = "{}{}".format(url, "\n" + str(kwargs['params']) if 'params' in kwargs.keys() else "")
+                req_data = "{}{}".format(
+                    url,
+                    "\n" + str(kwargs["params"]) if "params" in kwargs.keys() else "",
+                )
                 if rc < 500:
-                    raise ValueError(f"\n{res.headers}\n\nClientError. Error {str(rc)}\n{str(res.content)}\n{req_data}")
+                    raise ValueError(
+                        f"\n{res.headers}\n\nClientError. Error {str(rc)}\n{str(res.content)}\n{req_data}"
+                    )
                 else:
-                    raise ValueError(f"\n{res.headers}\n\nServerError. Error {str(rc)}\n{str(res.content)}\n{req_data}")
+                    raise ValueError(
+                        f"\n{res.headers}\n\nServerError. Error {str(rc)}\n{str(res.content)}\n{req_data}"
+                    )
 
             LOG.debug(f"Request to {url} returned with code {rc}")
             return res
@@ -114,45 +140,56 @@ class IntraAPIClient(object):
         return self.request(requests.delete, url, headers, **kwargs)
 
     def pages(self, url, headers={}, **kwargs):
-        kwargs['params'] = kwargs.get('params', {}).copy()
-        kwargs['params']['page'] = int(kwargs['params'].get('page', 1))
-        kwargs['params']['per_page'] = kwargs['params'].get('per_page', 100)
+        kwargs["params"] = kwargs.get("params", {}).copy()
+        kwargs["params"]["page"] = int(kwargs["params"].get("page", 1))
+        kwargs["params"]["per_page"] = kwargs["params"].get("per_page", 100)
         data = self.get(url=url, headers=headers, **kwargs)
         total = data.json()
-        if 'X-Total' not in data.headers:
+        if "X-Total" not in data.headers:
             return total
-        last_page = math.ceil(int(data.headers['X-Total']) /
-            int(data.headers['X-Per-Page']))
-        for page in tqdm(range(kwargs['params']['page'], last_page),
-            initial=1, total=last_page - kwargs['params']['page'] + 1,
-            desc=url, unit='p', disable=not self.progress_bar):
-            kwargs['params']['page'] = page + 1
+        last_page = math.ceil(
+            int(data.headers["X-Total"]) / int(data.headers["X-Per-Page"])
+        )
+        for page in tqdm(
+            range(kwargs["params"]["page"], last_page),
+            initial=1,
+            total=last_page - kwargs["params"]["page"] + 1,
+            desc=url,
+            unit="p",
+            disable=not self.progress_bar,
+        ):
+            kwargs["params"]["page"] = page + 1
             total += self.get(url=url, headers=headers, **kwargs).json()
         return total
 
-
-    def pages_threaded(self, url, headers={}, threads=20, stop_page=None,
-                                                            thread_timeout=15, **kwargs):
+    def pages_threaded(
+        self, url, headers={}, threads=20, stop_page=None, thread_timeout=15, **kwargs
+    ):
         def _page_thread(url, headers, queue, **kwargs):
             queue.put(self.get(url=url, headers=headers, **kwargs).json())
 
-        kwargs['params'] = kwargs.get('params', {}).copy()
-        kwargs['params']['page'] = int(kwargs['params'].get('page', 1))
-        kwargs['params']['per_page'] = kwargs['params'].get('per_page', 100)
+        kwargs["params"] = kwargs.get("params", {}).copy()
+        kwargs["params"]["page"] = int(kwargs["params"].get("page", 1))
+        kwargs["params"]["per_page"] = kwargs["params"].get("per_page", 100)
 
         data = self.get(url=url, headers=headers, **kwargs)
         total = data.json()
 
-        if 'X-Total' not in data.headers:
+        if "X-Total" not in data.headers:
             return total
 
         last_page = math.ceil(
-            float(data.headers['X-Total']) / float(data.headers['X-Per-Page'])
+            float(data.headers["X-Total"]) / float(data.headers["X-Per-Page"])
         )
         last_page = stop_page if stop_page and stop_page < last_page else last_page
-        page = kwargs['params']['page'] + 1
-        pbar = tqdm(initial=1, total=last_page - page + 2,
-            desc=url, unit='p', disable=not self.progress_bar)
+        page = kwargs["params"]["page"] + 1
+        pbar = tqdm(
+            initial=1,
+            total=last_page - page + 2,
+            desc=url,
+            unit="p",
+            disable=not self.progress_bar,
+        )
 
         while page <= last_page:
             active_threads = []
@@ -160,23 +197,24 @@ class IntraAPIClient(object):
                 if page > last_page:
                     break
                 queue = Queue()
-                kwargs['params']['page'] = page
-                at = threading.Thread(target=_page_thread,
-                    args=(url, headers, queue), kwargs=deepcopy(kwargs))
+                kwargs["params"]["page"] = page
+                at = threading.Thread(
+                    target=_page_thread,
+                    args=(url, headers, queue),
+                    kwargs=deepcopy(kwargs),
+                )
 
                 at.start()
-                active_threads.append({
-                    'thread': at,
-                    'page': page,
-                    'queue': queue
-                    })
+                active_threads.append({"thread": at, "page": page, "queue": queue})
                 page += 1
 
             for th in range(len(active_threads)):
-                active_threads[th]['thread'].join(timeout=threads * thread_timeout)
-                if active_threads[th]['thread'].is_alive():
-                    raise RuntimeError(f'Thread timeout after waiting for {threads * thread_timeout} seconds')
-                total += active_threads[th]['queue'].get()
+                active_threads[th]["thread"].join(timeout=threads * thread_timeout)
+                if active_threads[th]["thread"].is_alive():
+                    raise RuntimeError(
+                        f"Thread timeout after waiting for {threads * thread_timeout} seconds"
+                    )
+                total += active_threads[th]["queue"].get()
                 pbar.update(1)
 
         pbar.close()
@@ -187,4 +225,3 @@ class IntraAPIClient(object):
 
     def progress_enable(self):
         self.progress_bar = True
-

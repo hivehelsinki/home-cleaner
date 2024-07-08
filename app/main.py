@@ -1,4 +1,4 @@
-import intra
+import services.intra as intra
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import yaml
