@@ -1,0 +1,19 @@
+{
+  "mappings": [
+    {
+      "priority": 1,
+      "request": {
+        "urlPathTemplate": "/api/v1/homes",
+        "method": "GET"
+	  },
+      "response": {
+        "status": 200,
+        "fixedDelayMilliseconds": 300,
+        "jsonBody": [{"busy":false,"enabled":true,"identifier":"clem","index":1,"size":5003804672},{"busy":false,"enabled":true,"identifier":"titus","index":2,"size":5003804672}],
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+    }
+  ]
+}
