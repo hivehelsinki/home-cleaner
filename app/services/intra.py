@@ -12,12 +12,6 @@ requests.packages.urllib3.disable_warnings()
 
 LOG = logging.getLogger(__name__)
 
-# HOW TO #
-
-# import intra in your project and create an instance of IntraAPIClient
-# ic = IntraAPIClient("your_app_id", "your_app_secret")
-# the token rewquest url and the intra endpoint base url are set automatically to work with intra V2
-
 
 class IntraAPIClient(object):
     verify_requests = False
@@ -51,7 +45,7 @@ class IntraAPIClient(object):
         res = self.request(requests.post, self.token_url, params=request_token_payload)
         rj = res.json()
         self.token = rj["access_token"]
-        LOG.info(f"Got new acces token from intranet {self.token}")
+        LOG.info(f"Got new access token from intranet {self.token}")
 
     def _make_authed_header(self, header={}):
         ret = {"Authorization": f"Bearer {self.token}"}
@@ -66,7 +60,7 @@ class IntraAPIClient(object):
             url = f"{self.api_url}/{url}"
 
         while True:
-            LOG.debug(f"Attempting a request to {url}")
+            # LOG.debug(f"Attempting a request to {url}")
 
             res = method(
                 url,

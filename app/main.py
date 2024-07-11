@@ -1,110 +1,108 @@
-import services.intra as intra
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
-import yaml
+import app.services.intra as intra
 import requests
+from app.helpers.format_dates import make_date_payload, make_range
+from app.helpers.make_homes_chunks import make_homes_chunks
+from app.helpers.load_config import load_config
+from app.helpers.validate_config import validate_config
 
-with open("config.yml", "r") as f:
-    data = yaml.full_load(f)
+config = load_config("config.yml")
+validate_config(config)
+
 ic = intra.IntraAPIClient(
-    data["intra"]["client"], data["intra"]["secret"], progress_bar=True
+    config["intra"]["client"], config["intra"]["secret"], progress_bar=False
 )
 
 
-def get_students():
-    campus_id = data.get("campus_id")
-    res = ic.pages_threaded(f"campus/{campus_id}/users")
-    students = []
-    for student in res:
-        if (
-            "3b" not in student["login"]
-            and student["login"] not in data["god_mode_accoutns"]
-        ):
-            students.append(student["login"])
+def delete_homes(inactive_students):
+    unable_to_delete = []
+    for student in inactive_students:
+        url = f'{config['homemaker']['base-url']}/homes/{student}'
+        headers = {"Authorization": f'Bearer {config['homemaker']['admin-token']}'}
+        res = requests.delete(url, headers=headers)
 
-    return students
+        if res.status_code != 204:
+            unable_to_delete.append({"student": student, "code": res.status_code})
+
+    for home in unable_to_delete:
+        print(f"Unable to delete home: {home['student']} Code: {home['code']}")
 
 
-def get_incative_students(homes):
-    print("Getting students...")
-    students = get_students()
-    print(f"Found {len(students)} students")
-    inactive_duration_in_months = data["inactive_duration_in_months"]
-    today = datetime.now()
-    end_at = today.strftime("%Y-%m-%d")
-    begin_at = (today - relativedelta(months=inactive_duration_in_months)).strftime(
-        "%Y-%m-%d"
-    )
+def get_inactive_students(students):
+    payload = make_date_payload(config)
     inactive_students = []
-    payload = {"begin_at": begin_at, "end_at": end_at}
-    students_with_home = []
-
-    print("Getting students with homes...")
     for student in students:
-        if student in homes:
-            students_with_home.append(student)
-    print(f"Found {len(students_with_home)} students with homes")
+        try:
+            location_stats = ic.pages_threaded(
+                f"users/{student}/locations_stats", params=payload
+            )
+            if location_stats == {}:
+                inactive_students.append(student)
+        except Exception:
+            print(
+                f"\033[0;31mFailed to get location stats for student {student}\033[0m"
+            )
 
-    print("Getting locations stats...")
-    inactive_students = []
-    for i, student in enumerate(students_with_home):
-        location_stats = ic.pages_threaded(
-            f"users/{student}/locations_stats", params=payload
-        )
-        if location_stats == {}:
-            inactive_students.append(student)
+    if len(inactive_students) == 0:
+        print("No inactive students found. Exiting program.")
+        exit()
 
-        # Print the current progress
-        print(
-            f"Processing student {i + 1}/{len(students_with_home)}: {student}",
-            end="\r",
-            flush=True,
-        )
-    print("\nProcessing complete.")
-
-    print(f"Found {len(inactive_students)} inactive students with homes")
     return inactive_students
 
 
-def get_homes():
-    print("Getting homes...")
-    url = f'{data['homemaker']['base-url']}/homes'
-    headers = {"Authorization": f'Bearer {data['homemaker']['admin-token']}'}
-    res = requests.get(url, headers=headers)
-    homes = res.json()
-    homes_identifiers = []
-    for home in homes:
-        homes_identifiers.append(home["identifier"])
-    return homes_identifiers
-
-
-def delete_homes(inactive_students):
-    print("Deleting homes...")
-    for student in inactive_students:
-        print(student)
-    unable_to_delete = []
-    for i, student in enumerate(inactive_students):
-        url = f'{data['homemaker']['base-url']}/homes/{student}'
-        headers = {"Authorization": f'Bearer {data['homemaker']['admin-token']}'}
-        res = requests.delete(url, headers=headers)
-        if res.status_code != 204:
-            unable_to_delete.append({"student": student, "code": res.status_code})
-        print(
-            f"Deleting home {i + 1}/{len(inactive_students)}: {student}",
-            end="\r",
-            flush=True,
+def check_students_profile_creation_dates(homes):
+    created_at = make_range(config)
+    campus_id = config.get("campus_id")
+    homes_chunks = make_homes_chunks(homes)
+    new_homes = []
+    for chunk in homes_chunks:
+        slugs = ",".join(chunk)
+        students_with_new_homes = ic.pages_threaded(
+            f"campus/{campus_id}/users?filter[login]={slugs}&range[created_at]={created_at}"
         )
-    print("\nDeleting complete.")
-    print(f"Unable to delete {len(unable_to_delete)} homes")
-    for home in unable_to_delete:
-        print(f"Student: {home['student']} Code: {home['code']}")
+        if len(students_with_new_homes) > 0:
+            for student in students_with_new_homes:
+                new_homes.append(student["login"])
+    old_homes = [home for home in homes if home not in new_homes]
+
+    return old_homes
+
+
+def get_homes():
+    url = f'{config['homemaker']['base-url']}/homes'
+    headers = {"Authorization": f'Bearer {config['homemaker']['admin-token']}'}
+    res = requests.get(url, headers=headers)
+    if res.status_code == 200:
+        homes = res.json()
+        homes_identifiers = []
+        for home in homes:
+            if home["identifier"] not in config["god_mode_accounts"]:
+                homes_identifiers.append(home["identifier"])
+        if len(homes_identifiers) == 0:
+            print("No homes found. Exiting program.")
+            exit()
+
+        return homes_identifiers
+    else:
+        print(f"Failed to get homes: {res.status_code} -- Exiting program.")
+        exit()
+
+
+def check_that_homes_are_deleted(deleted_homes):
+    homes = get_homes()
+    undeleted_homes = [home for home in deleted_homes if home in homes]
+    if len(undeleted_homes) == 0:
+        print("All homes are deleted.")
+    else:
+        print(f"\033[0;31mFailed to delete {len(undeleted_homes)} homes:")
+        print(", ".join(undeleted_homes))
 
 
 def home_cleaner():
     homes = get_homes()
-    inactive_students = get_incative_students(homes)
-    print("Cleaning homes...")
-    delete_homes(inactive_students)
+    students_profiles_older_than_n_months = check_students_profile_creation_dates(homes)
+    inactive_students = get_inactive_students(students_profiles_older_than_n_months)
+    # delete_homes(inactive_students)
+    check_that_homes_are_deleted(inactive_students)
 
 
 if __name__ == "__main__":

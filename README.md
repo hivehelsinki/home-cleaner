@@ -111,6 +111,11 @@ Or if you just want to run it over the whole codebase at times:
 pre-commit run --all-files
 ```
 
+### Running the app
+```
+python -m app.main
+```
+
 ## URLs
 The urls that are accessible from localhost:
 * Homemaker-API (mocked): http://localhost:8080/api/v1/ (e.g. http://localhost:8080/api/v1/homes)

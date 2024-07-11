@@ -1,0 +1,20 @@
+campus_id:
+inactive_duration_in_months: 3
+god_mode_accounts:
+  - a
+  - list
+  - of
+  - accouts
+  - to
+  - ingore
+
+intra:
+  client:
+  secret:
+  uri: "https://api.intra.42.fr/v2/oauth/token"
+  endpoint_base_url: "https://api.intra.42.fr/v2"
+  scopes: 
+
+homemaker:
+  admin-token: the token for your homaker instance
+  base-url: the base url of you homemaker instance

@@ -3,7 +3,7 @@
     {
       "priority": 1,
       "request": {
-        "urlPathTemplate": "/api/v1/homes",
+        "urlPathTemplate": "/homes",
         "method": "GET"
 	  },
       "response": {
