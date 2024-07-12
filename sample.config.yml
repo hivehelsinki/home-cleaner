@@ -16,5 +16,5 @@ intra:
   scopes: 
 
 homemaker:
-  admin-token: the token for your homaker instance
-  base-url: the base url of you homemaker instance
+  admin_token: the token for your homaker instance
+  base_url: the base url of you homemaker instance

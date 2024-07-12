@@ -1,30 +1,22 @@
 import app.services.intra as intra
-import requests
+import app.services.homemaker as homemaker
 from app.helpers.format_dates import make_date_payload, make_range
 from app.helpers.make_homes_chunks import make_homes_chunks
 from app.helpers.load_config import load_config
-from app.helpers.validate_config import validate_config
 
 config = load_config("config.yml")
-validate_config(config)
 
 ic = intra.IntraAPIClient(
     config["intra"]["client"], config["intra"]["secret"], progress_bar=False
 )
+homeamker = homemaker.HomemakerAPIClient(
+    config["homemaker"]["admin_token"], config["homemaker"]["base_url"]
+)
 
 
 def delete_homes(inactive_students):
-    unable_to_delete = []
     for student in inactive_students:
-        url = f'{config['homemaker']['base-url']}/homes/{student}'
-        headers = {"Authorization": f'Bearer {config['homemaker']['admin-token']}'}
-        res = requests.delete(url, headers=headers)
-
-        if res.status_code != 204:
-            unable_to_delete.append({"student": student, "code": res.status_code})
-
-    for home in unable_to_delete:
-        print(f"Unable to delete home: {home['student']} Code: {home['code']}")
+        homemaker.delete_home(student)
 
 
 def get_inactive_students(students):
@@ -68,11 +60,10 @@ def check_students_profile_creation_dates(homes):
 
 
 def get_homes():
-    url = f'{config['homemaker']['base-url']}/homes'
-    headers = {"Authorization": f'Bearer {config['homemaker']['admin-token']}'}
-    res = requests.get(url, headers=headers)
-    if res.status_code == 200:
-        homes = res.json()
+    try:
+        homes = homeamker.get_homes()
+        assert homes is not None, "Failed to get homes"
+
         homes_identifiers = []
         for home in homes:
             if home["identifier"] not in config["god_mode_accounts"]:
@@ -82,8 +73,7 @@ def get_homes():
             exit()
 
         return homes_identifiers
-    else:
-        print(f"Failed to get homes: {res.status_code} -- Exiting program.")
+    except AssertionError:
         exit()
 
 

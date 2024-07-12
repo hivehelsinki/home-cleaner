@@ -60,7 +60,7 @@ class IntraAPIClient(object):
             url = f"{self.api_url}/{url}"
 
         while True:
-            # LOG.debug(f"Attempting a request to {url}")
+            LOG.debug(f"Attempting a request to {url}")
 
             res = method(
                 url,
