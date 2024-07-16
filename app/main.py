@@ -1,5 +1,6 @@
 import app.services.intra as intra
 import app.services.homemaker as homemaker
+import logging
 from app.helpers.format_dates import make_date_payload, make_range
 from app.helpers.make_homes_chunks import make_homes_chunks
 from app.helpers.load_config import load_config
@@ -9,14 +10,16 @@ config = load_config("config.yml")
 ic = intra.IntraAPIClient(
     config["intra"]["client"], config["intra"]["secret"], progress_bar=False
 )
-homeamker = homemaker.HomemakerAPIClient(
+hmk = homemaker.HomemakerAPIClient(
     config["homemaker"]["admin_token"], config["homemaker"]["base_url"]
 )
 
 
 def delete_homes(inactive_students):
     for student in inactive_students:
-        homemaker.delete_home(student)
+        success = hmk.delete_home(student)
+        if not success:
+            logging.error(f"\033[0;31mFailed to delete {student}'s home\033[0m]")
 
 
 def get_inactive_students(students):
@@ -30,12 +33,12 @@ def get_inactive_students(students):
             if location_stats == {}:
                 inactive_students.append(student)
         except Exception:
-            print(
+            logging.error(
                 f"\033[0;31mFailed to get location stats for student {student}\033[0m"
             )
 
     if len(inactive_students) == 0:
-        print("No inactive students found. Exiting program.")
+        logging.warning("No inactive students found. Exiting program.")
         exit()
 
     return inactive_students
@@ -61,19 +64,22 @@ def check_students_profile_creation_dates(homes):
 
 def get_homes():
     try:
-        homes = homeamker.get_homes()
-        assert homes is not None, "Failed to get homes"
+        homes = hmk.get_homes()
+        if homes is None:
+            logging.warning("No homes found. Exiting program.")
+            exit()
 
         homes_identifiers = []
         for home in homes:
             if home["identifier"] not in config["god_mode_accounts"]:
                 homes_identifiers.append(home["identifier"])
         if len(homes_identifiers) == 0:
-            print("No homes found. Exiting program.")
+            logging.warning("No homes found. Exiting program.")
             exit()
 
         return homes_identifiers
-    except AssertionError:
+    except Exception as e:
+        logging.error(f"\033[0;31mFailed to get homes: {e}\033[0m")
         exit()
 
 
@@ -81,10 +87,10 @@ def check_that_homes_are_deleted(deleted_homes):
     homes = get_homes()
     undeleted_homes = [home for home in deleted_homes if home in homes]
     if len(undeleted_homes) == 0:
-        print("All homes are deleted.")
+        logging.info("All homes are deleted.")
     else:
-        print(f"\033[0;31mFailed to delete {len(undeleted_homes)} homes:")
-        print(", ".join(undeleted_homes))
+        logging.error(f"\033[0;31mFailed to delete {len(undeleted_homes)} homes:")
+        logging.error(", ".join(undeleted_homes))
 
 
 def home_cleaner():
