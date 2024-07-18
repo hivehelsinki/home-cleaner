@@ -24,9 +24,7 @@ Get everything up and running:
 ```
 make start
 ```
-This starts the Docker containers for our app and a [WireMock](https://wiremock.org/) container which acts as a mock for homemaker-api
 The _app_ and _tests_ directories are volume mapped to the `homecleaner` container.
-You can also access the external services via port 8080.
 
 Bring everything down:
 ```
@@ -80,13 +78,6 @@ Activate the virtual environment (after this you won't need to type `poetry run 
 poetry shell
 ```
 
-#### Running the service
-
-You can start the Docker dependencies (WireMock container for homemaker-api) with:
-```
-make start-dependencies
-```
-
 ### Testing
 ```
 pytest
@@ -115,9 +106,3 @@ pre-commit run --all-files
 ```
 python -m app.main
 ```
-
-## URLs
-The urls that are accessible from localhost:
-* Homemaker-API (mocked): http://localhost:8080/api/v1/ (e.g. http://localhost:8080/api/v1/homes)
-
-These work both in "Docker only" and "local Python environment" development setups.

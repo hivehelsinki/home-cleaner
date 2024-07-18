@@ -2,10 +2,6 @@
 start:
 	@docker compose up --build
 
-.PHONY: start-dependencies
-start-dependencies:
-	@docker compose up homemaker-mock
-
 .PHONY: stop
 stop:
 	@docker compose down --remove-orphans
