@@ -4,16 +4,16 @@ god_mode_accounts:
   - a
   - list
   - of
-  - accouts
+  - logins
   - to
-  - ingore
+  - ignore
 
 intra:
   client:
   secret:
   uri: "https://api.intra.42.fr/v2/oauth/token"
   endpoint_base_url: "https://api.intra.42.fr/v2"
-  scopes: 
+  scopes: "public"
 
 homemaker:
   admin_token: the token for your homaker instance

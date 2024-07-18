@@ -2,7 +2,7 @@ services:
     homecleaner:
       build:
         context: .
-      command: python app/homecleaner/main.py
+      command: python -m app.main
       environment:
         - HOMEMAKER_API=http://
       volumes:
