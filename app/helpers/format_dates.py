@@ -3,7 +3,7 @@ from dateutil.relativedelta import relativedelta
 
 
 def make_range(config):
-    end_at = datetime.now().strftime("%Y-%m-%d")
+    end_at = (datetime.now() + relativedelta(days=1)).strftime("%Y-%m-%d")
     begin_at = (
         datetime.now() - relativedelta(months=config["inactive_duration_in_months"])
     ).strftime("%Y-%m-%d")
