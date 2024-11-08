@@ -45,7 +45,7 @@ class IntraAPIClient(object):
         res = self.request(requests.post, self.token_url, params=request_token_payload)
         rj = res.json()
         self.token = rj["access_token"]
-        LOG.info(f"Got new access token from intranet {self.token}")
+        LOG.debug(f"Got new access token from intranet {self.token}")
 
     def _make_authed_header(self, header={}):
         ret = {"Authorization": f"Bearer {self.token}"}

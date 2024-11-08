@@ -6,6 +6,7 @@ from app.helpers.make_homes_chunks import make_homes_chunks
 from app.helpers.load_config import load_config
 
 config = load_config("config.yml")
+logging.basicConfig(level=logging.INFO)
 
 ic = intra.IntraAPIClient(
     config["intra"]["client"], config["intra"]["secret"], progress_bar=False
@@ -23,6 +24,7 @@ def delete_homes(inactive_students):
 
 
 def get_inactive_students(students):
+    logging.info("Getting inactive students.")
     payload = make_date_payload(config)
     inactive_students = []
     for student in students:
@@ -64,6 +66,7 @@ def check_students_profile_creation_dates(homes):
 
 def get_homes():
     try:
+        logging.info("Getting homes.")
         homes = hmk.get_homes()
         if homes is None:
             logging.warning("No homes found. Exiting program.")
@@ -97,7 +100,7 @@ def home_cleaner():
     homes = get_homes()
     students_profiles_older_than_n_months = check_students_profile_creation_dates(homes)
     inactive_students = get_inactive_students(students_profiles_older_than_n_months)
-    # delete_homes(inactive_students)
+    delete_homes(inactive_students)
     check_that_homes_are_deleted(inactive_students)
 
 
