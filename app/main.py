@@ -43,6 +43,8 @@ def get_inactive_students(students):
         logging.warning("No inactive students found. Exiting program.")
         exit()
 
+    logging.info(f"Found {len(inactive_students)} inactive students.")
+
     return inactive_students
 
 
@@ -90,7 +92,7 @@ def check_that_homes_are_deleted(deleted_homes):
     homes = get_homes()
     undeleted_homes = [home for home in deleted_homes if home in homes]
     if len(undeleted_homes) == 0:
-        logging.info("All homes are deleted.")
+        logging.info("All inactive homes are deleted.")
     else:
         logging.error(f"\033[0;31mFailed to delete {len(undeleted_homes)} homes:")
         logging.error(", ".join(undeleted_homes))

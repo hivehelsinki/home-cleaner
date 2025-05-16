@@ -6,7 +6,8 @@ services:
       environment:
         - HOMEMAKER_API=http://
       volumes:
-        - ./app:/app/homecleaner:z
+        - ./app:/app/app:z
         - ./tests:/app/tests:z
         - ./pyproject.toml:/app/pyproject.toml:z
         - ./poetry.lock:/app/poetry.lock:z
+        - ./config.yml:/app/config.yml:z

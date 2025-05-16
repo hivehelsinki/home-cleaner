@@ -28,5 +28,5 @@ COPY pyproject.toml poetry.lock /app/
 
 RUN poetry install --no-root
 
-COPY app/ /app/homecleaner/
+COPY app/ /app/app/
 COPY tests/ /app/tests/
